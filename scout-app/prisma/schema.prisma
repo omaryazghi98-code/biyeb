@@ -1,0 +1,114 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Player {
+  id              String           @id @default(cuid())
+  externalId      Int              @unique
+  name            String
+  firstName       String?
+  lastName        String?
+  nationality     String?
+  position        String?
+  photoUrl        String?
+  currentTeamId   String?
+  currentTeam     Team?            @relation(fields: [currentTeamId], references: [id])
+  watchlist       WatchlistEntry?
+  tags            PlayerTag[]
+  reports         ScoutingReport[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+}
+
+model Team {
+  id          String      @id @default(cuid())
+  externalId  Int         @unique
+  name        String
+  country     String?
+  logoUrl     String?
+  players     Player[]
+  homeMatches Fixture[]  @relation("HomeTeam")
+  awayMatches Fixture[]  @relation("AwayTeam")
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model Fixture {
+  id           String           @id @default(cuid())
+  externalId   Int              @unique
+  homeTeamId   String
+  awayTeamId   String
+  homeTeam     Team             @relation("HomeTeam", fields: [homeTeamId], references: [id])
+  awayTeam     Team             @relation("AwayTeam", fields: [awayTeamId], references: [id])
+  competition  String?
+  kickoffAt    DateTime
+  venue        String?
+  status       String?
+  broadcasts   Broadcast[]
+  reports      ScoutingReport[]
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  @@index([kickoffAt])
+}
+
+model Broadcast {
+  id         String   @id @default(cuid())
+  fixtureId  String
+  fixture    Fixture  @relation(fields: [fixtureId], references: [id], onDelete: Cascade)
+  country    String
+  countryCode String
+  station    String
+  stationUrl String?
+  logoUrl    String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([fixtureId, countryCode, station])
+  @@index([fixtureId, countryCode])
+}
+
+model WatchlistEntry {
+  id        String   @id @default(cuid())
+  playerId  String   @unique
+  player    Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  status    String   @default("WATCHING")
+  priority  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Tag {
+  id      String       @id @default(cuid())
+  name    String       @unique
+  players PlayerTag[]
+}
+
+model PlayerTag {
+  playerId String
+  tagId    String
+  player   Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  tag      Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([playerId, tagId])
+}
+
+model ScoutingReport {
+  id         String   @id @default(cuid())
+  playerId   String
+  fixtureId  String?
+  rating     Int?
+  verdict    String?
+  notes      String
+  player     Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  fixture    Fixture? @relation(fields: [fixtureId], references: [id], onDelete: SetNull)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([playerId, createdAt])
+}
