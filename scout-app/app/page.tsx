@@ -19,7 +19,7 @@ export default function Home() {
           <h1>Watch the players, not the fixtures.</h1>
           <p className="subtitle">Your personal scouting calendar. Add a player once and Scoutboard keeps the matches worth watching in front of you.</p>
         </div>
-        <span className="badge">MVP foundation</span>
+        <a className="badge" href="/watchlist">Add players</a>
       </header>
 
       <section className="grid">
@@ -39,8 +39,7 @@ export default function Home() {
           <div className="players">
             {tracked.map((player) => (
               <div className="player" key={player.name}>
-                <strong>{player.name}</strong>
-                <span>{player.club} · {player.tag}</span>
+                <div><strong>{player.name}</strong><span>{player.club} · {player.tag}</span></div>
               </div>
             ))}
           </div>
