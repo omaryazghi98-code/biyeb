@@ -11,12 +11,16 @@ export async function GET(_: NextRequest, { params }: { params: { id: string } }
 }
 
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
-  const body = await request.json();
+  const contentType = request.headers.get("content-type") ?? "";
+  const body = contentType.includes("application/x-www-form-urlencoded") || contentType.includes("multipart/form-data")
+    ? Object.fromEntries((await request.formData()).entries())
+    : await request.json();
+
   if (typeof body.notes !== "string" || body.notes.trim().length < 1) {
     return NextResponse.json({ error: "Notes are required" }, { status: 400 });
   }
 
-  const rating = body.rating == null ? null : Number(body.rating);
+  const rating = body.rating === "" || body.rating == null ? null : Number(body.rating);
   if (rating !== null && (!Number.isInteger(rating) || rating < 1 || rating > 10)) {
     return NextResponse.json({ error: "Rating must be an integer from 1 to 10" }, { status: 400 });
   }
@@ -24,9 +28,9 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   const report = await prisma.scoutingReport.create({
     data: {
       playerId: params.id,
-      fixtureId: body.fixtureId || null,
+      fixtureId: typeof body.fixtureId === "string" && body.fixtureId ? body.fixtureId : null,
       rating,
-      verdict: typeof body.verdict === "string" ? body.verdict : null,
+      verdict: typeof body.verdict === "string" && body.verdict ? body.verdict : null,
       notes: body.notes.trim(),
     },
   });
