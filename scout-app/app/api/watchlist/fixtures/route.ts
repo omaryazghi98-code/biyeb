@@ -5,13 +5,18 @@ import { getTeamFixtures } from "@/lib/api-football";
 export async function GET() {
   const entries = await prisma.watchlistEntry.findMany({ include: { player: { include: { currentTeam: true } } } });
   const teams = entries.map((entry) => entry.player.currentTeam).filter((team): team is NonNullable<typeof team> => Boolean(team));
-
   const uniqueTeams = [...new Map(teams.map((team) => [team.externalId, team])).values()];
+
   for (const team of uniqueTeams) {
     const result = await getTeamFixtures(team.externalId);
     for (const fixture of result.response) {
-      await prisma.team.upsert({ where: { externalId: fixture.teams.home.id }, update: { name: fixture.teams.home.name, logoUrl: fixture.teams.home.logo }, create: { externalId: fixture.teams.home.id, name: fixture.teams.home.name, logoUrl: fixture.teams.home.logo } });
-      await prisma.team.upsert({ where: { externalId: fixture.teams.away.id }, update: { name: fixture.teams.away.name, logoUrl: fixture.teams.away.logo }, create: { externalId: fixture.teams.away.id, name: fixture.teams.away.name, logoUrl: fixture.teams.away.logo } });
+      for (const side of [fixture.teams.home, fixture.teams.away]) {
+        await prisma.team.upsert({
+          where: { externalId: side.id },
+          update: { name: side.name, logoUrl: side.logo },
+          create: { externalId: side.id, name: side.name, logoUrl: side.logo },
+        });
+      }
       const home = await prisma.team.findUniqueOrThrow({ where: { externalId: fixture.teams.home.id } });
       const away = await prisma.team.findUniqueOrThrow({ where: { externalId: fixture.teams.away.id } });
       await prisma.fixture.upsert({
@@ -23,7 +28,13 @@ export async function GET() {
   }
 
   const fixtures = await prisma.fixture.findMany({
-    where: { kickoffAt: { gte: new Date() }, homeTeam: { players: { some: { watchlist: { isNot: null } } } } },
+    where: {
+      kickoffAt: { gte: new Date() },
+      OR: [
+        { homeTeam: { players: { some: { watchlist: { isNot: null } } } } },
+        { awayTeam: { players: { some: { watchlist: { isNot: null } } } } },
+      ],
+    },
     include: { homeTeam: true, awayTeam: true },
     orderBy: { kickoffAt: "asc" },
     take: 50,
