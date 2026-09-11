@@ -1,37 +1,33 @@
-# Scout App
+# Scoutboard
 
-Personal football scouting watchlist and fixture tracker.
+Personal football scouting watchlist and match calendar.
 
-## MVP
-
-- Search football players
-- Add players to a watchlist
-- Automatically surface upcoming club fixtures
-- Track national-team fixtures when called up
-- Take notes per match
-- Tag players (`Wonderkid`, `One to Watch`, `Priority`, etc.)
-- Maintain scouting reports and verdicts
-- Weekly scouting calendar
-
-## Planned stack
+## Stack
 
 - Next.js + TypeScript
-- PostgreSQL
-- API-Football as the first football-data provider
-- Provider abstraction so the data source can be swapped later
+- PostgreSQL + Prisma
+- API-Football as the football data provider
 
-## Architecture
+## Local setup
 
-```text
-API-Football
-     |
-     v
-Application backend
-     |
-     +--> PostgreSQL
-     |
-     v
-Next.js UI
+```bash
+cd scout-app
+npm install
+cp .env.example .env.local
+npx prisma generate
+npm run dev
 ```
 
-See `docs/architecture.md` for the initial design.
+Set `API_FOOTBALL_KEY` in `.env.local`. Set `DATABASE_URL` when database-backed features are enabled.
+
+## Current MVP foundation
+
+- Dashboard shell
+- Watchlist domain model
+- Teams, fixtures and scouting reports schema
+- API-Football provider wrapper
+- `GET /api/players/search?q=...` player search endpoint
+
+## Next build step
+
+Connect player search to an interactive add-to-watchlist UI, persist selected players, then sync their upcoming club fixtures into the database.
